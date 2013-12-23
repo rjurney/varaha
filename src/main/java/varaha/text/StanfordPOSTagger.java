@@ -114,8 +114,9 @@ public class StanfordPOSTagger extends EvalFunc<DataBag> {
             for (CoreLabel label; ptbt.hasNext(); ) {
                 label = (CoreLabel)ptbt.next();
                 String word = label.value();
+                String tag = label.tag();
 
-                List<String> token = Arrays.asList(word, wordTag);
+                List<String> token = Arrays.asList(word, tag);
                 termText = tupleFactory.newTuple(token);
                 bagOfTokens.add(termText);
             }
