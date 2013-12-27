@@ -62,6 +62,20 @@ public class StanfordPOSTagger extends EvalFunc<DataBag> {
     private static boolean isFirst = true;
     private static MaxentTagger tagger;
 
+    private String _model = "src/resources/test/english-left3words-distsim.tagger";
+
+
+
+    public StanfordPOSTagger(){
+
+    }
+
+    public StanfordPOSTagger(String model){
+
+        _model = model;
+
+    }
+
     // Must also add implementation for bag sof tuples of sentences
     public DataBag exec(Tuple input) throws IOException {
         if (input == null || input.size() < 1 || input.isNull(0))
@@ -70,7 +84,7 @@ public class StanfordPOSTagger extends EvalFunc<DataBag> {
         if(isFirst)
         {
             try {
-                tagger = new MaxentTagger("edu/stanford/nlp/models/pos-tagger/english-left3words/english-left3words-distsim.tagger");
+                tagger = new MaxentTagger(_model);
             }
             catch(Exception e) {
                 System.err.println("Exception loading language model: " + e.getMessage());
@@ -116,7 +130,13 @@ public class StanfordPOSTagger extends EvalFunc<DataBag> {
                 String word = label.value();
                 String tag = label.tag();
 
-                List<String> token = Arrays.asList(word, tag);
+                String [] parts = label.value().split("_");
+                List<String> token;
+                if( parts.length==2)
+                    token = Arrays.asList(parts);
+                else
+                    token = Arrays.asList( word, word);
+
                 termText = tupleFactory.newTuple(token);
                 bagOfTokens.add(termText);
             }
