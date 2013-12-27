@@ -115,32 +115,40 @@ public class StanfordPOSTagger extends EvalFunc<DataBag> {
             }
             while(charsRead > 0);
 
+
+
             // Tagging with the Stanford tagger produces another string, format: word_TAG
             String stringReadFromReader = builder.toString();
             String tagged = tagger.tagString(stringReadFromReader);
             StringReader taggedInput = new StringReader(tagged);
 
+            System.out.println("Tagged: " + tagged);
+
+
+
             // Use the Stanford Tokenizer to tokenize the text
-            PTBTokenizer ptbt = new PTBTokenizer(taggedInput, new CoreLabelTokenFactory(), "invertible=true");
+            //PTBTokenizer ptbt = new PTBTokenizer(taggedInput , new CoreLabelTokenFactory(),  "invertible=true,untokenizable=allKeep");
 
             // Now split based on '_' and build/return a bag of 2-field tuples
             Tuple termText = tupleFactory.newTuple();
-            for (CoreLabel label; ptbt.hasNext(); ) {
-                label = (CoreLabel)ptbt.next();
-                String word = label.value();
-                String tag = label.tag();
 
-                String [] parts = label.value().split("_");
+
+            String [] tokens =  tagged.split("\\s+");
+            //for (CoreLabel label; ptbt.hasNext(); ) {
+            for(String s:tokens){
+                //label = (CoreLabel)ptbt.next();
+                String word =s ; //label.word();
+                String [] parts = word.split("_");
                 List<String> token;
-                if( parts.length==2)
+                //if( parts.length==2)
                     token = Arrays.asList(parts);
-                else
-                    token = Arrays.asList( word, word);
+                //else
+                //    token = Arrays.asList( word, word);
 
                 termText = tupleFactory.newTuple(token);
                 bagOfTokens.add(termText);
             }
-            bagOfTokens.add(termText);
+            //bagOfTokens.add(termText);
         }
         else if(inThing instanceof DataBag) {
             Iterator<Tuple> itr = ((DataBag)inThing).iterator();
@@ -165,7 +173,6 @@ public class StanfordPOSTagger extends EvalFunc<DataBag> {
         {
             throw new IOException();
         }
-
         return bagOfTokens;
     }
 }
