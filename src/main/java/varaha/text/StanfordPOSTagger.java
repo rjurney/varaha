@@ -18,6 +18,15 @@
 
 package varaha.text;
 
+import edu.stanford.nlp.ling.TaggedWord;
+import edu.stanford.nlp.ling.Word;
+import edu.stanford.nlp.tagger.maxent.MaxentTagger;
+import org.apache.pig.EvalFunc;
+import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
+
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -25,35 +34,21 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import edu.stanford.nlp.ling.TaggedWord;
-import org.apache.pig.EvalFunc;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.BagFactory;
-
-import edu.stanford.nlp.tagger.maxent.MaxentTagger;
-import edu.stanford.nlp.process.PTBTokenizer;
-import edu.stanford.nlp.ling.CoreLabel;
-import edu.stanford.nlp.process.CoreLabelTokenFactory;
-import edu.stanford.nlp.ling.Word;
-
 /**
  * StanfordPOSTagger uses the Stanford Maximum Entropy Tagger class to Part-Of-Speech tag a
  * raw text input. Output is a pig bag containing two-field tuples, of the format (word, tag).
- *
+ * <p/>
  * <dt><b>Example:</b></dt>
  * <dd><code>
  * register varaha.jar;<br/>
  * documents    = LOAD 'documents' AS (doc_id:chararray, text:chararray);<br/>
  * tokenized    = FOREACH documents GENERATE doc_id AS doc_id, StanfordPOSTagger(text)
- *                                  AS (b:bag{token:tuple(word:chararray, tag:chararray)});
+ * AS (b:bag{token:tuple(word:chararray, tag:chararray)});
  * </code></dd>
  * </dl>
  *
- * @see
  * @author Russell Jurney
- *
+ * @see
  */
 public class StanfordPOSTagger extends EvalFunc<DataBag> {
 
@@ -65,12 +60,11 @@ public class StanfordPOSTagger extends EvalFunc<DataBag> {
     private String _model = "src/resources/test/english-left3words-distsim.tagger";
 
 
-
-    public StanfordPOSTagger(){
+    public StanfordPOSTagger() {
 
     }
 
-    public StanfordPOSTagger(String model){
+    public StanfordPOSTagger(String model) {
 
         _model = model;
 
@@ -81,12 +75,10 @@ public class StanfordPOSTagger extends EvalFunc<DataBag> {
         if (input == null || input.size() < 1 || input.isNull(0))
             return null;
 
-        if(isFirst)
-        {
+        if (isFirst) {
             try {
                 tagger = new MaxentTagger(_model);
-            }
-            catch(Exception e) {
+            } catch (Exception e) {
                 System.err.println("Exception loading language model: " + e.getMessage());
             }
             isFirst = false;
@@ -96,25 +88,22 @@ public class StanfordPOSTagger extends EvalFunc<DataBag> {
         DataBag bagOfTokens = bagFactory.newDefaultBag();
 
         Object inThing = input.get(0);
-        if(inThing instanceof String) {
-            StringReader textInput = new StringReader((String)inThing);
+        if (inThing instanceof String) {
+            StringReader textInput = new StringReader((String) inThing);
 
             // Convert StringReader to String via StringBuilder
             //using string builder is more efficient than concating strings together.
             StringBuilder builder = new StringBuilder();
             int charsRead = -1;
             char[] chars = new char[100];
-            do
-            {
-                charsRead = textInput.read(chars,0,chars.length);
+            do {
+                charsRead = textInput.read(chars, 0, chars.length);
                 //if we have valid chars, append them to end of string.
-                if(charsRead > 0)
-                {
-                    builder.append(chars,0,charsRead);
+                if (charsRead > 0) {
+                    builder.append(chars, 0, charsRead);
                 }
             }
-            while(charsRead > 0);
-
+            while (charsRead > 0);
 
 
             // Tagging with the Stanford tagger produces another string, format: word_TAG
@@ -122,55 +111,43 @@ public class StanfordPOSTagger extends EvalFunc<DataBag> {
             String tagged = tagger.tagString(stringReadFromReader);
             StringReader taggedInput = new StringReader(tagged);
 
-            System.out.println("Tagged: " + tagged);
 
-
-
-            // Use the Stanford Tokenizer to tokenize the text
+            //won't use tokenizer, as it splits also on ._., instead use plain white space regex
             //PTBTokenizer ptbt = new PTBTokenizer(taggedInput , new CoreLabelTokenFactory(),  "invertible=true,untokenizable=allKeep");
 
             // Now split based on '_' and build/return a bag of 2-field tuples
             Tuple termText = tupleFactory.newTuple();
-
-
-            String [] tokens =  tagged.split("\\s+");
+            String[] tokens = tagged.split("\\s+");
             //for (CoreLabel label; ptbt.hasNext(); ) {
-            for(String s:tokens){
+            for (String s : tokens) {
                 //label = (CoreLabel)ptbt.next();
-                String word =s ; //label.word();
-                String [] parts = word.split("_");
-                List<String> token;
-                //if( parts.length==2)
-                    token = Arrays.asList(parts);
-                //else
-                //    token = Arrays.asList( word, word);
+                String word = s; //label.word();
+                String[] parts = word.split("_");
+                List<String> token = Arrays.asList(parts);
 
                 termText = tupleFactory.newTuple(token);
                 bagOfTokens.add(termText);
             }
             //bagOfTokens.add(termText);
-        }
-        else if(inThing instanceof DataBag) {
-            Iterator<Tuple> itr = ((DataBag)inThing).iterator();
+        } else if (inThing instanceof DataBag) {
+            Iterator<Tuple> itr = ((DataBag) inThing).iterator();
             List<Word> sentence = null;
-            while(itr.hasNext()) {
+            while (itr.hasNext()) {
                 Tuple t = itr.next();
-                if(t.get(0) != null) {
+                if (t.get(0) != null) {
                     Word word = new Word(t.get(0).toString());
                     sentence.add(word);
                 }
             }
             ArrayList<TaggedWord> tagged_sentence = tagger.apply(sentence);
-            for( TaggedWord tw : tagged_sentence) {
+            for (TaggedWord tw : tagged_sentence) {
                 ArrayList values = new ArrayList();
                 values.add(tw.word());
                 values.add(tw.toString("_"));
                 Tuple t = tupleFactory.newTuple(values);
                 bagOfTokens.add(t);
             }
-        }
-        else
-        {
+        } else {
             throw new IOException();
         }
         return bagOfTokens;
