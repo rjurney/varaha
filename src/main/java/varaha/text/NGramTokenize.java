@@ -47,7 +47,7 @@ import edu.stanford.nlp.process.DocumentPreprocessor;
  * @author Russell Jurney
  *
  */
-public class NGramTokenizer extends EvalFunc<DataBag> {
+public class NGramTokenize extends EvalFunc<DataBag> {
 
     private static TupleFactory tupleFactory = TupleFactory.getInstance();
     private static BagFactory bagFactory = BagFactory.getInstance();
